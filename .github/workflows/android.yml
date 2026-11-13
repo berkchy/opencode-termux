@@ -1,0 +1,74 @@
+name: android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "anomalyco/opencode ref to build (branch, tag or commit)"
+        required: false
+        default: ""
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UPSTREAM_REPO: anomalyco/opencode
+  # Pinned upstream commit; bump this to ship a newer opencode.
+  UPSTREAM_REF: 83960f8a56b2f2b8ad0b751f23baaf9d0eb65ad9
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out opencode
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ inputs.upstream_ref || env.UPSTREAM_REF }}
+          fetch-depth: 1
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Cache Bun dependencies
+        id: bun-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: linux-bun-1.4.4-${{ hashFiles('bun.lock', 'patches/**') }}
+          restore-keys: linux-bun-1.4.4-
+
+      - name: Cache Bun compile runtime
+        id: bun-compile-cache
+        uses: actions/cache@v4
+        with:
+          path: packages/cli/dist/.bun
+          key: bun-compile-bun-v1.4.4-${{ runner.arch }}
+          restore-keys: bun-compile-bun-v1.4.4-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        working-directory: packages/cli
+        env:
+          BUN_COMPILE_RELEASE: bun-v1.4.4
+          OPENCODE_TARGET: linux-arm64-musl
+          GH_TOKEN: ${{ github.token }}
+        run: bun run build
+
+      - name: Package tarball
+        run: cd packages/cli/dist/cli-linux-arm64-musl && tar -czf "$GITHUB_WORKSPACE/opencode-termux-arm64.tar.gz" bin package.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-termux-arm64
+          path: opencode-termux-arm64.tar.gz
+          retention-days: 90
