@@ -60,11 +60,40 @@ jobs:
         env:
           BUN_COMPILE_RELEASE: bun-v1.4.4
           OPENCODE_TARGET: linux-arm64-musl
+          OPENCODE_CHANNEL: dev
           GH_TOKEN: ${{ github.token }}
         run: bun run build
 
-      - name: Package tarball
-        run: cd packages/cli/dist/cli-linux-arm64-musl && tar -czf "$GITHUB_WORKSPACE/opencode-termux-arm64.tar.gz" bin package.json
+      - name: Bundle musl runtime into package
+        run: |
+          mkdir -p pkg/opencode-termux/lib
+          docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w alpine:latest sh -euc '
+            apk add --no-cache musl libstdc++ libgcc >/dev/null
+            cp -L /lib/ld-musl-aarch64.so.1 pkg/opencode-termux/lib/ld-musl-aarch64.so.1
+            cp -L /lib/libc.musl-aarch64.so.1 pkg/opencode-termux/lib/libc.musl-aarch64.so.1
+            cp -L /usr/lib/libstdc++.so.6 pkg/opencode-termux/lib/libstdc++.so.6
+            cp -L /usr/lib/libgcc_s.so.1 pkg/opencode-termux/lib/libgcc_s.so.1
+          '
+          cp packages/cli/dist/cli-linux-arm64-musl/bin/opencode pkg/opencode-termux/opencode.bin
+          cp packages/cli/dist/cli-linux-arm64-musl/package.json pkg/opencode-termux/package.json
+          git -C . rev-parse HEAD > pkg/opencode-termux/UPSTREAM_COMMIT
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'src="$0"' \
+            'while [ -L "$src" ]; do' \
+            '  dir=$(CDPATH= cd -- "$(dirname -- "$src")" && pwd)' \
+            '  target=$(readlink -- "$src")' \
+            '  case "$target" in' \
+            '    /*) src="$target" ;;' \
+            '    *) src="$dir/$target" ;;' \
+            '  esac' \
+            'done' \
+            'DIR=$(CDPATH= cd -- "$(dirname -- "$src")" && pwd)' \
+            'exec "$DIR/lib/ld-musl-aarch64.so.1" --library-path "$DIR/lib" "$DIR/opencode.bin" "$@"' \
+            > pkg/opencode-termux/opencode
+          chmod 755 pkg/opencode-termux/opencode pkg/opencode-termux/opencode.bin
+          chmod 755 pkg/opencode-termux/lib/*
+          tar -czf opencode-termux-arm64.tar.gz -C pkg opencode-termux
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
