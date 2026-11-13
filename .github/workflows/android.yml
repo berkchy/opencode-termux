@@ -68,9 +68,7 @@ jobs:
         run: |
           mkdir -p pkg/opencode-termux/lib
           docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w alpine:latest sh -euxc '
-            apk add --no-cache musl libstdc++ libgcc
-            apk info -L musl libstdc++ libgcc
-            ls -laC /lib /usr/lib | head -40
+            apk add --no-cache --arch aarch64 musl libstdc++ libgcc
             cp -L "$(find / -name 'ld-musl-aarch64.so.1' | head -1)" pkg/opencode-termux/lib/ld-musl-aarch64.so.1
             cp -L "$(find / -name 'libc.musl-aarch64.so.1' | head -1)" pkg/opencode-termux/lib/libc.musl-aarch64.so.1
             cp -L "$(find / -name 'libstdc++.so.6' | head -1)" pkg/opencode-termux/lib/libstdc++.so.6
