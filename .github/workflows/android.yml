@@ -68,11 +68,11 @@ jobs:
         run: |
           mkdir -p pkg/opencode-termux/lib
           docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w alpine:latest sh -euxc '
-            apk add --no-cache --arch aarch64 musl libstdc++ libgcc
-            cp -L "$(find / -name 'ld-musl-aarch64.so.1' | head -1)" pkg/opencode-termux/lib/ld-musl-aarch64.so.1
-            cp -L "$(find / -name 'libc.musl-aarch64.so.1' | head -1)" pkg/opencode-termux/lib/libc.musl-aarch64.so.1
-            cp -L "$(find / -name 'libstdc++.so.6' | head -1)" pkg/opencode-termux/lib/libstdc++.so.6
-            cp -L "$(find / -name 'libgcc_s.so.1' | head -1)" pkg/opencode-termux/lib/libgcc_s.so.1
+            apk add --root /w/pkg-root --initdb --arch aarch64 --no-cache --no-scripts musl libstdc++ libgcc
+            cp -L /w/pkg-root/lib/ld-musl-aarch64.so.1 pkg/opencode-termux/lib/ld-musl-aarch64.so.1
+            cp -L /w/pkg-root/lib/libc.musl-aarch64.so.1 pkg/opencode-termux/lib/libc.musl-aarch64.so.1
+            cp -L /w/pkg-root/usr/lib/libstdc++.so.6 pkg/opencode-termux/lib/libstdc++.so.6
+            cp -L /w/pkg-root/usr/lib/libgcc_s.so.1 pkg/opencode-termux/lib/libgcc_s.so.1
           '
           cp packages/cli/dist/cli-linux-arm64-musl/bin/opencode pkg/opencode-termux/opencode.bin
           cp packages/cli/dist/cli-linux-arm64-musl/package.json pkg/opencode-termux/package.json
