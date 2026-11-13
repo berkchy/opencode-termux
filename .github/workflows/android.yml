@@ -73,6 +73,7 @@ jobs:
             cp -L /w/pkg-root/lib/libc.musl-aarch64.so.1 pkg/opencode-termux/lib/libc.musl-aarch64.so.1
             cp -L /w/pkg-root/usr/lib/libstdc++.so.6 pkg/opencode-termux/lib/libstdc++.so.6
             cp -L /w/pkg-root/usr/lib/libgcc_s.so.1 pkg/opencode-termux/lib/libgcc_s.so.1
+            chmod 755 pkg/opencode-termux/lib/*
           '
           cp packages/cli/dist/cli-linux-arm64-musl/bin/opencode pkg/opencode-termux/opencode.bin
           cp packages/cli/dist/cli-linux-arm64-musl/package.json pkg/opencode-termux/package.json
@@ -92,7 +93,6 @@ jobs:
             'exec "$DIR/lib/ld-musl-aarch64.so.1" --library-path "$DIR/lib" "$DIR/opencode.bin" "$@"' \
             > pkg/opencode-termux/opencode
           chmod 755 pkg/opencode-termux/opencode pkg/opencode-termux/opencode.bin
-          chmod 755 pkg/opencode-termux/lib/*
           tar -czf opencode-termux-arm64.tar.gz -C pkg opencode-termux
 
       - name: Upload artifact
