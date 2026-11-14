@@ -8,6 +8,12 @@ as `linux-arm64-musl` and shipped with a bundled musl runtime. A wrapper script 
 `ld-musl-aarch64.so.1` with `--library-path`, which works on any Android kernel/API level — no root,
 no proot, no glibc shim.
 
+Termux login shells export `LD_PRELOAD=/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so`.
+That library is bionic-only and cannot be loaded by the musl loader, so the wrapper unsets
+`LD_PRELOAD`/`LD_LIBRARY_PATH` before exec'ing the musl runtime. Child processes spawned by opencode
+therefore do not inherit termux-exec's path rewriting; tools are spawned via `SHELL`/`PATH`
+(`/data/data/com.termux/files/usr/bin/...`), which works as usual.
+
 ## How it works
 
 The `android` GitHub Actions workflow:
